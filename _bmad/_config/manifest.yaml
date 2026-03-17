@@ -1,0 +1,15 @@
+installation:
+  version: 6.2.0
+  installDate: 2026-03-17T08:27:38.830Z
+  lastUpdated: 2026-03-17T08:27:38.830Z
+modules:
+  - name: core
+    version: 6.2.0
+    installDate: 2026-03-17T08:27:38.830Z
+    lastUpdated: 2026-03-17T08:27:38.830Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+ides:
+  - claude-code
+  - antigravity
