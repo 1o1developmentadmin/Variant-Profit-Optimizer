@@ -13,46 +13,361 @@ datasource db {
   url      = "file:dev.sqlite"
 }
 
-model Shop {
-  id                 Int      @id @default(autoincrement())
-  shopDomain         String   @unique
-  hasAllOrdersScope  Boolean  @default(false)
-  onboardingComplete Boolean  @default(false)
-  syncRange          Int      @default(180)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  settings MerchantSettings?
+// ---------------------------------------------------------------------------
+// Shopify session storage (managed by @shopify/shopify-app-session-storage-prisma)
+// ---------------------------------------------------------------------------
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
 }
 
+// ---------------------------------------------------------------------------
+// Core tables (15 tables required by EPIC-02)
+// ---------------------------------------------------------------------------
+
+// 1. shops
+model Shop {
+  id                 Int       @id @default(autoincrement())
+  shopDomain         String    @unique
+  hasAllOrdersScope  Boolean   @default(false)
+  onboardingComplete Boolean   @default(false)
+  syncRange          Int       @default(180)
+  lastFullSyncAt     DateTime?
+  installedAt        DateTime  @default(now())
+  uninstalledAt      DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  settings MerchantSettings?
+  syncJobs SyncJob[]
+  products Product[]
+  orders   Order[]
+}
+
+// 2. merchant_settings
 model MerchantSettings {
-  id                   Int      @id @default(autoincrement())
-  shopDomain           String   @unique
-  lowMarginThreshold   Float    @default(15)
-  refundRiskThreshold  Float    @default(8)
-  stockoutThreshold    Int      @default(10)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  shopDomain          String   @unique
+  lowMarginThreshold  Float    @default(15)
+  refundRiskThreshold Float    @default(8)
+  stockoutThreshold   Int      @default(10)
+  scoringWeightsJson  String?  // forward-compat JSON blob; not surfaced in Phase 1 UI
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   shop Shop @relation(fields: [shopDomain], references: [shopDomain])
 }
 
-model Session {
-  id            String    @id
-  shop          String
-  state         String
-  isOnline      Boolean   @default(false)
-  scope         String?
-  expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
-  email         String?
-  accountOwner  Boolean   @default(false)
-  locale        String?
-  collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
-  refreshToken        String?
-  refreshTokenExpires DateTime?
+// 3. sync_jobs
+// status: pending | running | completed | failed
+// jobType: products | orders | refunds | inventory | transactions
+model SyncJob {
+  id               String    @id @default(cuid())
+  shopDomain       String
+  jobType          String    // products | orders | refunds | inventory | transactions
+  status           String    @default("pending")
+  bulkOperationId  String?
+  recordsProcessed Int       @default(0)
+  errorMessage     String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  shop Shop @relation(fields: [shopDomain], references: [shopDomain])
+
+  @@index([shopDomain, status])
+  @@index([shopDomain, createdAt])
+}
+
+// 4. products
+model Product {
+  id               String    @id @default(cuid())
+  shopDomain       String
+  productGid       String    // gid://shopify/Product/123
+  title            String
+  handle           String?
+  status           String?   // ACTIVE | ARCHIVED | DRAFT
+  productType      String?
+  vendor           String?
+  createdAtShopify DateTime?
+  updatedAtShopify DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  shop     Shop      @relation(fields: [shopDomain], references: [shopDomain])
+  variants Variant[]
+
+  @@unique([shopDomain, productGid])
+  @@index([shopDomain])
+}
+
+// 5. variants
+model Variant {
+  id                String    @id @default(cuid())
+  shopDomain        String
+  variantGid        String    // gid://shopify/ProductVariant/123
+  productGid        String
+  title             String
+  sku               String?
+  price             Float     @default(0)
+  compareAtPrice    Float?
+  inventoryItemGid  String?   // gid://shopify/InventoryItem/123
+  inventoryQuantity Int?
+  createdAtShopify  DateTime?
+  updatedAtShopify  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  product Product @relation(fields: [shopDomain, productGid], references: [shopDomain, productGid])
+
+  @@unique([shopDomain, variantGid])
+  @@index([shopDomain])
+  @@index([shopDomain, inventoryItemGid])
+}
+
+// 6. inventory_items
+model InventoryItem {
+  id                   String    @id @default(cuid())
+  shopDomain           String
+  inventoryItemGid     String    // gid://shopify/InventoryItem/123
+  variantGid           String?
+  sku                  String?
+  unitCostAmount       Float?
+  unitCostCurrencyCode String?
+  hasCostData          Boolean   @default(false)
+  tracked              Boolean   @default(false)
+  requiresShipping     Boolean?
+  createdAtShopify     DateTime?
+  updatedAtShopify     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  inventoryLevels InventoryLevel[]
+
+  @@unique([shopDomain, inventoryItemGid])
+  @@index([shopDomain])
+  @@index([shopDomain, variantGid])
+}
+
+// 7. inventory_levels
+model InventoryLevel {
+  id               String    @id @default(cuid())
+  shopDomain       String
+  inventoryItemGid String
+  locationGid      String    // gid://shopify/Location/123
+  available        Int       @default(0)
+  onHand           Int?
+  committed        Int?
+  reserved         Int?
+  incoming         Int?
+  updatedAtShopify DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  inventoryItem InventoryItem @relation(fields: [shopDomain, inventoryItemGid], references: [shopDomain, inventoryItemGid])
+
+  @@unique([shopDomain, inventoryItemGid, locationGid])
+  @@index([shopDomain])
+}
+
+// 8. orders
+model Order {
+  id                 String    @id @default(cuid())
+  shopDomain         String
+  orderGid           String    // gid://shopify/Order/123
+  orderNumber        String?
+  name               String?   // #1001
+  email              String?
+  financialStatus    String?
+  fulfillmentStatus  String?
+  totalPriceAmount   Float?
+  subtotalAmount     Float?
+  currencyCode       String?
+  isTest             Boolean   @default(false)
+  processedAt        DateTime?
+  cancelledAtShopify DateTime?
+  closedAt           DateTime?
+  createdAtShopify   DateTime?
+  updatedAtShopify   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  shop         Shop            @relation(fields: [shopDomain], references: [shopDomain])
+  lineItems    OrderLineItem[]
+  refunds      Refund[]
+  transactions Transaction[]
+
+  @@unique([shopDomain, orderGid])
+  @@index([shopDomain])
+  @@index([shopDomain, processedAt])
+}
+
+// 9. order_line_items
+model OrderLineItem {
+  id                  String   @id @default(cuid())
+  shopDomain          String
+  orderGid            String
+  lineItemGid         String   // gid://shopify/LineItem/123
+  variantGid          String?
+  title               String?
+  variantTitle        String?
+  quantity            Int      @default(0)
+  price               Float    @default(0)
+  totalDiscountAmount Float?
+  sku                 String?
+  isGiftCard          Boolean?
+  requiresShipping    Boolean?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  order Order @relation(fields: [shopDomain, orderGid], references: [shopDomain, orderGid])
+
+  @@unique([shopDomain, lineItemGid])
+  @@index([shopDomain])
+  @@index([shopDomain, variantGid])
+}
+
+// 10. refunds
+model Refund {
+  id                  String    @id @default(cuid())
+  shopDomain          String
+  orderGid            String
+  refundGid           String    // gid://shopify/Refund/123
+  note                String?
+  totalRefundedAmount Float?
+  currencyCode        String?
+  createdAtShopify    DateTime?
+  processedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  order           Order            @relation(fields: [shopDomain, orderGid], references: [shopDomain, orderGid])
+  refundLineItems RefundLineItem[]
+
+  @@unique([shopDomain, refundGid])
+  @@index([shopDomain])
+  @@index([shopDomain, orderGid])
+}
+
+// 11. refund_line_items
+model RefundLineItem {
+  id                String   @id @default(cuid())
+  shopDomain        String
+  refundGid         String
+  // orderLineItemGid stored as plain string; join in code to avoid nullable composite FK
+  orderLineItemGid  String?
+  variantGid        String?
+  refundLineItemGid String   // gid://shopify/RefundLineItem/123
+  quantity          Int      @default(0)
+  subtotalAmount    Float?
+  totalTaxAmount    Float?
+  restockType       String?  // NO_RESTOCK | CANCEL | RETURN | LEGACY_RESTOCK
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  refund Refund @relation(fields: [shopDomain, refundGid], references: [shopDomain, refundGid])
+
+  @@unique([shopDomain, refundLineItemGid])
+  @@index([shopDomain])
+  @@index([shopDomain, variantGid])
+  @@index([shopDomain, refundGid])
+  @@index([shopDomain, orderLineItemGid])
+}
+
+// 12. transactions  (stored in Phase 1; not used by scoring engine until Phase 2)
+model Transaction {
+  id                   String    @id @default(cuid())
+  shopDomain           String
+  orderGid             String
+  transactionGid       String    // gid://shopify/OrderTransaction/123
+  parentTransactionGid String?
+  kind                 String?   // SALE | REFUND | VOID | CAPTURE | AUTHORIZATION
+  status               String?   // SUCCESS | FAILURE | ERROR | PENDING
+  gateway              String?
+  amount               Float?
+  currencyCode         String?
+  processedAtShopify   DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  order Order @relation(fields: [shopDomain, orderGid], references: [shopDomain, orderGid])
+
+  @@unique([shopDomain, transactionGid])
+  @@index([shopDomain])
+  @@index([shopDomain, orderGid])
+}
+
+// 13. variant_daily_metrics
+model VariantDailyMetrics {
+  id                String   @id @default(cuid())
+  shopDomain        String
+  variantGid        String
+  date              DateTime
+  unitsSold         Int      @default(0)
+  revenue           Float    @default(0)
+  refundCount       Int      @default(0)
+  refundAmount      Float    @default(0)
+  unitsSoldLast14d  Int      @default(0)
+  unitsSoldPrior14d Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([shopDomain, variantGid, date])
+  @@index([shopDomain])
+  @@index([shopDomain, variantGid])
+}
+
+// 14. variant_scores
+model VariantScore {
+  id            String   @id @default(cuid())
+  shopDomain    String
+  variantGid    String
+  profitScore   Float?   // nullable when cost data is absent (per EPIC spec)
+  marginPct     Float?
+  refundRate    Float?
+  stockoutRisk  Float?
+  velocityScore Float?
+  scoredAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shopDomain, variantGid])
+  @@index([shopDomain])
+}
+
+// 15. recommendations
+// status: active | resolved | dismissed
+model Recommendation {
+  id          String    @id @default(cuid())
+  shopDomain  String
+  variantGid  String
+  type        String?
+  status      String    @default("active")
+  priority    Int       @default(0)
+  titleText   String?
+  bodyText    String?
+  metadata    String?   // JSON blob for additional data
+  resolvedAt  DateTime?
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([shopDomain, status])
+  @@index([shopDomain, variantGid])
 }

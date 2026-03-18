@@ -18,7 +18,7 @@ export function SetupHealthCard({ health, onRetrySync }: SetupHealthCardProps) {
 
   return (
     <s-section heading="Setup health">
-      {syncStatus === "in_progress" && syncStage && (
+      {syncStatus === "running" && syncStage && (
         <s-banner tone="info">
           <s-paragraph>
             Sync in progress — {syncStage}. Some data may be incomplete.

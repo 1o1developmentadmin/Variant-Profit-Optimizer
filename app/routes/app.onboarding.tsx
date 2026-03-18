@@ -8,6 +8,7 @@ import {
 } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { startFullSync } from "../lib/sync/sync.service";
 import type { Route } from "./+types/app.onboarding";
 
 const TOTAL_STEPS = 6;
@@ -89,6 +90,8 @@ export const action = async ({ request }: Route.ActionArgs) => {
           stockoutThreshold,
         },
       });
+      // Trigger background sync — runs asynchronously while user views step 5
+      await startFullSync(shop);
       break;
     }
 
