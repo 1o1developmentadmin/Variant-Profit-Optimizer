@@ -323,6 +323,13 @@ model VariantDailyMetrics {
   revenue           Float    @default(0)
   refundCount       Int      @default(0)
   refundAmount      Float    @default(0)
+  ordersCount         Int      @default(0)
+  cogsAmount          Float    @default(0)
+  grossProfitAmount   Float?
+  marginPct           Float?
+  salesVelocity7d     Float    @default(0)
+  salesVelocity30d    Float    @default(0)
+  endingStockQuantity Int?
   unitsSoldLast14d  Int      @default(0)
   unitsSoldPrior14d Int      @default(0)
   createdAt         DateTime @default(now())
