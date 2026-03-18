@@ -87,7 +87,9 @@ async function executeSyncPipeline(
   runningShops.add(shopDomain);
 
   try {
+    console.log(`[sync:pipeline] Acquiring unauthenticated.admin for ${shopDomain}`);
     const { admin } = await unauthenticated.admin(shopDomain);
+    console.log(`[sync:pipeline] Got admin client for ${shopDomain}`);
 
     const shopRecord = await db.shop.findUnique({ where: { shopDomain } });
     const syncRangeDays = shopRecord?.syncRange ?? 180;

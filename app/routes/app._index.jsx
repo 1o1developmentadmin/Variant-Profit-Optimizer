@@ -144,18 +144,41 @@ export default function Index() {
   const [dateRange, setDateRange] = useState("30d");
   const syncFetcher = useFetcher();
   const isSyncing = syncFetcher.state !== "idle";
+  const syncResult = syncFetcher.data;
+
+  // Log sync responses to browser console for debugging
+  if (syncResult) {
+    console.log("[sync] Response from /api/sync:", syncResult);
+    if (syncResult.error === "offline_session_expired") {
+      console.error("[sync] Offline session expired — re-open the app from Shopify admin to refresh auth.");
+    }
+  }
+
+  const noData = summary.push === 0 && summary.deprioritize === 0 && summary.lowMargin === 0;
 
   return (
     <s-page heading="Overview">
       <s-stack direction="block" gap="large">
-        {summary.push === 0 && summary.deprioritize === 0 && summary.lowMargin === 0 && (
-          <s-banner tone="info">
-            <s-paragraph>No data yet. Run a sync to pull your store data.</s-paragraph>
-            <syncFetcher.Form method="post" action="/api/sync">
-              <s-button type="submit" variant="primary">
-                {isSyncing ? "Syncing…" : "Sync Data Now"}
-              </s-button>
-            </syncFetcher.Form>
+        {noData && (
+          <s-banner tone={syncResult?.error ? "critical" : "info"}>
+            {syncResult?.error === "offline_session_expired" ? (
+              <s-paragraph>
+                Auth token expired. Close this app, re-open it from your Shopify admin (Apps menu), then try syncing again.
+              </s-paragraph>
+            ) : (
+              <s-paragraph>
+                {syncResult?.started
+                  ? "Sync started in background. Reload this page in ~30s to see data."
+                  : "No data yet. Run a sync to pull your store data."}
+              </s-paragraph>
+            )}
+            {!syncResult?.started && (
+              <syncFetcher.Form method="post" action="/api/sync">
+                <s-button type="submit" variant="primary">
+                  {isSyncing ? "Syncing…" : "Sync Data Now"}
+                </s-button>
+              </syncFetcher.Form>
+            )}
           </s-banner>
         )}
         <SummaryCards summary={summary} />
