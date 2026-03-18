@@ -3,7 +3,7 @@
  */
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { getVariantProfitability, GROSS_PROFIT_LABEL } from "../lib/metrics/profitability";
+import { getBatchVariantProfitability, GROSS_PROFIT_LABEL } from "../lib/metrics/profitability";
 import type { Route } from "./+types/api.variants";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
@@ -32,25 +32,26 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     },
   });
 
-  const rows = await Promise.all(
-    variants.map(async (v: { id: string; variantGid: string; productGid: string; title: string; sku: string | null; price: number; inventoryQuantity: number | null }) => {
-      const profit = await getVariantProfitability(shopDomain, v.variantGid, windowDays);
-      return {
-        id: v.id,
-        variantGid: v.variantGid,
-        productGid: v.productGid,
-        title: v.title,
-        sku: v.sku,
-        price: v.price,
-        inventoryQuantity: v.inventoryQuantity,
-        revenue: profit.revenue,
-        grossProfit: profit.hasCostData ? profit.grossProfit : null,
-        marginPct: profit.hasCostData ? profit.marginPct : null,
-        grossProfitLabel: GROSS_PROFIT_LABEL,
-        hasCostData: profit.hasCostData,
-      };
-    }),
-  );
+  const variantGids = variants.map((v: { variantGid: string }) => v.variantGid);
+  const profitMap = await getBatchVariantProfitability(shopDomain, variantGids, windowDays);
+
+  const rows = variants.map((v: { id: string; variantGid: string; productGid: string; title: string; sku: string | null; price: number; inventoryQuantity: number | null }) => {
+    const profit = profitMap.get(v.variantGid);
+    return {
+      id: v.id,
+      variantGid: v.variantGid,
+      productGid: v.productGid,
+      title: v.title,
+      sku: v.sku,
+      price: v.price,
+      inventoryQuantity: v.inventoryQuantity,
+      revenue: profit?.revenue ?? 0,
+      grossProfit: profit?.hasCostData ? profit.grossProfit : null,
+      marginPct: profit?.hasCostData ? profit.marginPct : null,
+      grossProfitLabel: GROSS_PROFIT_LABEL,
+      hasCostData: profit?.hasCostData ?? false,
+    };
+  });
 
   return Response.json({ variants: rows, windowDays });
 };
