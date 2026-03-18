@@ -31,34 +31,30 @@ export function OpportunityProductsTable({ products }: OpportunityProductsTableP
   return (
     <s-section heading="Opportunity Products">
       <s-table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Variants</th>
-            <th>Revenue</th>
-            <th>Gross Profit (excl. fees &amp; shipping)</th>
-            <th>Issues</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => (
-            <tr key={product.id} style={{ cursor: "pointer" }}>
-              <td>{product.title}</td>
-              <td>{product.variantCount}</td>
-              <td>{fmt(product.revenue)}</td>
-              <td>{product.grossProfit != null ? fmt(product.grossProfit) : "—"}</td>
-              <td>
-                {product.missingCostVariants > 0 && <NoCostDataBadge />}
-              </td>
-              <td>
-                <s-button href={`/app/products/${product.id}`} variant="tertiary">
-                  View
-                </s-button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
+        <s-table-header-row>
+          <s-table-header>Product</s-table-header>
+          <s-table-header>Variants</s-table-header>
+          <s-table-header>Revenue</s-table-header>
+          <s-table-header>Gross Profit (excl. fees &amp; shipping)</s-table-header>
+          <s-table-header>Issues</s-table-header>
+          <s-table-header>Actions</s-table-header>
+        </s-table-header-row>
+        {products.map((product) => (
+          <s-table-row key={product.id}>
+            <s-table-cell>{product.title}</s-table-cell>
+            <s-table-cell>{product.variantCount}</s-table-cell>
+            <s-table-cell>{fmt(product.revenue)}</s-table-cell>
+            <s-table-cell>{product.grossProfit != null ? fmt(product.grossProfit) : "—"}</s-table-cell>
+            <s-table-cell>
+              {product.missingCostVariants > 0 && <NoCostDataBadge />}
+            </s-table-cell>
+            <s-table-cell>
+              <s-button href={`/app/products/${product.id}`} variant="tertiary">
+                View
+              </s-button>
+            </s-table-cell>
+          </s-table-row>
+        ))}
       </s-table>
     </s-section>
   );

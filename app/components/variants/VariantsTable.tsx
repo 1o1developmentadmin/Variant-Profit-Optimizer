@@ -81,52 +81,44 @@ export function VariantsTable({
         <s-paragraph>No variants match the selected filter.</s-paragraph>
       ) : (
         <s-table>
-          <thead>
-            <tr>
-              <th>Variant</th>
-              <th>SKU</th>
-              <th>Revenue</th>
-              <th>Gross Profit (excl. fees &amp; shipping)</th>
-              <th>Margin %</th>
-              <th>Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {variants.map((v) => (
-              <tr
-                key={v.id}
-                onClick={() => onRowClick(v)}
-                style={{ cursor: "pointer" }}
-              >
-                <td>{v.title}</td>
-                <td>{v.sku ?? "—"}</td>
-                <td>{fmt(v.revenue)}</td>
-                <td>
-                  {v.hasCostData ? fmt(v.grossProfit) : <NoCostDataBadge />}
-                </td>
-                <td>
-                  {v.marginPct != null ? `${v.marginPct.toFixed(1)}%` : "—"}
-                </td>
-                <td>{v.inventoryQuantity ?? "—"}</td>
-                <td>
-                  {v.recommendedAction ? (
-                    <StatusBadge action={v.recommendedAction} />
-                  ) : v.isSingleVariantProduct ? (
-                    <SingleVariantBadge />
-                  ) : (
-                    "—"
-                  )}
-                  <s-button
-                    variant="tertiary"
-                    onClick={() => onRowClick(v)}
-                  >
-                    View
-                  </s-button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <s-table-header-row>
+            <s-table-header>Variant</s-table-header>
+            <s-table-header>SKU</s-table-header>
+            <s-table-header>Revenue</s-table-header>
+            <s-table-header>Gross Profit (excl. fees &amp; shipping)</s-table-header>
+            <s-table-header>Margin %</s-table-header>
+            <s-table-header>Stock</s-table-header>
+            <s-table-header>Actions</s-table-header>
+          </s-table-header-row>
+          {variants.map((v) => (
+            <s-table-row key={v.id}>
+              <s-table-cell>{v.title}</s-table-cell>
+              <s-table-cell>{v.sku ?? "—"}</s-table-cell>
+              <s-table-cell>{fmt(v.revenue)}</s-table-cell>
+              <s-table-cell>
+                {v.hasCostData ? fmt(v.grossProfit) : <NoCostDataBadge />}
+              </s-table-cell>
+              <s-table-cell>
+                {v.marginPct != null ? `${v.marginPct.toFixed(1)}%` : "—"}
+              </s-table-cell>
+              <s-table-cell>{v.inventoryQuantity ?? "—"}</s-table-cell>
+              <s-table-cell>
+                {v.recommendedAction ? (
+                  <StatusBadge action={v.recommendedAction} />
+                ) : v.isSingleVariantProduct ? (
+                  <SingleVariantBadge />
+                ) : (
+                  "—"
+                )}
+                <s-button
+                  variant="tertiary"
+                  onClick={() => onRowClick(v)}
+                >
+                  View
+                </s-button>
+              </s-table-cell>
+            </s-table-row>
+          ))}
         </s-table>
       )}
     </s-stack>

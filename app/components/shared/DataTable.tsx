@@ -55,38 +55,30 @@ export function DataTable({
   return (
     <s-stack direction="block" gap="base">
       <s-table>
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key}>
-                {col.sortable && onSort ? (
-                  <s-button
-                    variant="tertiary"
-                    onClick={() => onSort(col.key)}
-                  >
-                    {col.label}{" "}
-                    {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : ""}
-                  </s-button>
-                ) : (
-                  col.label
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, idx) => (
-            <tr
-              key={idx}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-              style={onRowClick ? { cursor: "pointer" } : undefined}
-            >
-              {columns.map((col) => (
-                <td key={col.key}>{row[col.key]}</td>
-              ))}
-            </tr>
+        <s-table-header-row>
+          {columns.map((col) => (
+            <s-table-header key={col.key}>
+              {col.sortable && onSort ? (
+                <s-button
+                  variant="tertiary"
+                  onClick={() => onSort(col.key)}
+                >
+                  {col.label}{" "}
+                  {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                </s-button>
+              ) : (
+                col.label
+              )}
+            </s-table-header>
           ))}
-        </tbody>
+        </s-table-header-row>
+        {rows.map((row, idx) => (
+          <s-table-row key={idx}>
+            {columns.map((col) => (
+              <s-table-cell key={col.key}>{row[col.key]}</s-table-cell>
+            ))}
+          </s-table-row>
+        ))}
       </s-table>
 
       {showPagination && (

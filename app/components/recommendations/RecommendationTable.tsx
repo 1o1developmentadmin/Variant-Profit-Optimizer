@@ -97,48 +97,44 @@ export function RecommendationTable({
         <s-paragraph>No recommendations match your filters.</s-paragraph>
       ) : (
         <s-table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Variant</th>
-              <th>Action</th>
-              <th>Confidence</th>
-              <th>Reason Summary</th>
-              <th>CTA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recommendations.map((rec) => (
-              <tr key={rec.id} style={{ cursor: "pointer" }}>
-                <td>{rec.productTitle ?? "—"}</td>
-                <td>{rec.variantTitle ?? "—"}</td>
-                <td>
-                  {rec.type ? <StatusBadge action={rec.type} /> : "—"}
-                </td>
-                <td>
-                  {rec.confidenceScore != null ? (
-                    <s-badge tone={confidenceTone(rec.confidenceScore) as any}>
-                      {Math.round(rec.confidenceScore)}%
-                    </s-badge>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td>
-                  {rec.titleText ? (
-                    <RecommendationReasonChips reasons={[rec.titleText]} />
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td>
-                  <s-button variant="tertiary" onClick={() => onRowClick(rec)}>
-                    View
-                  </s-button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <s-table-header-row>
+            <s-table-header>Product</s-table-header>
+            <s-table-header>Variant</s-table-header>
+            <s-table-header>Action</s-table-header>
+            <s-table-header>Confidence</s-table-header>
+            <s-table-header>Reason Summary</s-table-header>
+            <s-table-header>CTA</s-table-header>
+          </s-table-header-row>
+          {recommendations.map((rec) => (
+            <s-table-row key={rec.id}>
+              <s-table-cell>{rec.productTitle ?? "—"}</s-table-cell>
+              <s-table-cell>{rec.variantTitle ?? "—"}</s-table-cell>
+              <s-table-cell>
+                {rec.type ? <StatusBadge action={rec.type} /> : "—"}
+              </s-table-cell>
+              <s-table-cell>
+                {rec.confidenceScore != null ? (
+                  <s-badge tone={confidenceTone(rec.confidenceScore) as any}>
+                    {Math.round(rec.confidenceScore)}%
+                  </s-badge>
+                ) : (
+                  "—"
+                )}
+              </s-table-cell>
+              <s-table-cell>
+                {rec.titleText ? (
+                  <RecommendationReasonChips reasons={[rec.titleText]} />
+                ) : (
+                  "—"
+                )}
+              </s-table-cell>
+              <s-table-cell>
+                <s-button variant="tertiary" onClick={() => onRowClick(rec)}>
+                  View
+                </s-button>
+              </s-table-cell>
+            </s-table-row>
+          ))}
         </s-table>
       )}
     </s-stack>

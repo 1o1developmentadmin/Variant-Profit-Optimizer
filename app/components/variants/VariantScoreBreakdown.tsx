@@ -65,22 +65,18 @@ export function VariantScoreBreakdown({
   return (
     <s-section heading="Score Breakdown">
       <s-table>
-        <thead>
-          <tr>
-            <th>Score Type</th>
-            <th>Score</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.type}>
-              <td>{row.type}</td>
-              <td>{row.score ?? row.notes}</td>
-              <td>{row.score != null ? row.notes : ""}</td>
-            </tr>
-          ))}
-        </tbody>
+        <s-table-header-row>
+          <s-table-header>Score Type</s-table-header>
+          <s-table-header>Score</s-table-header>
+          <s-table-header>Notes</s-table-header>
+        </s-table-header-row>
+        {rows.map((row) => (
+          <s-table-row key={row.type}>
+            <s-table-cell>{row.type}</s-table-cell>
+            <s-table-cell>{row.score ?? row.notes}</s-table-cell>
+            <s-table-cell>{row.score != null ? row.notes : ""}</s-table-cell>
+          </s-table-row>
+        ))}
       </s-table>
     </s-section>
   );

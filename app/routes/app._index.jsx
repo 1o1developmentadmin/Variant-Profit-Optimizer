@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLoaderData } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { SummaryCards } from "../components/overview/SummaryCards";
@@ -142,10 +142,22 @@ export const loader = async ({ request }) => {
 export default function Index() {
   const { summary, highlightedRecommendations, topProducts } = useLoaderData();
   const [dateRange, setDateRange] = useState("30d");
+  const syncFetcher = useFetcher();
+  const isSyncing = syncFetcher.state !== "idle";
 
   return (
     <s-page heading="Overview">
       <s-stack direction="block" gap="large">
+        {summary.push === 0 && summary.deprioritize === 0 && summary.lowMargin === 0 && (
+          <s-banner tone="info">
+            <s-paragraph>No data yet. Run a sync to pull your store data.</s-paragraph>
+            <syncFetcher.Form method="post" action="/api/sync">
+              <s-button type="submit" variant="primary">
+                {isSyncing ? "Syncing…" : "Sync Data Now"}
+              </s-button>
+            </syncFetcher.Form>
+          </s-banner>
+        )}
         <SummaryCards summary={summary} />
         <HighlightedRecommendations recommendations={highlightedRecommendations} />
         <OpportunityProductsTable products={topProducts} />
