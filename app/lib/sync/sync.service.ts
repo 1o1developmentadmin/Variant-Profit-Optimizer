@@ -22,6 +22,7 @@ import { runRefundsJob } from "./jobs/refunds-job";
 import { runInventoryJob } from "./jobs/inventory-job";
 import { runTransactionsJob } from "./jobs/transactions-job";
 import { runRecomputeDailyMetricsJob } from "./jobs/recomputeDailyMetrics.job";
+import { runRecomputeVariantScoresJob } from "./jobs/recomputeVariantScores.job";
 
 const JOB_TYPES = [
   "products",
@@ -30,6 +31,7 @@ const JOB_TYPES = [
   "inventory",
   "transactions",
   "recomputeDailyMetrics",
+  "recomputeVariantScores",
 ] as const;
 
 type JobType = (typeof JOB_TYPES)[number];
@@ -59,7 +61,7 @@ export async function startFullSync(shopDomain: string): Promise<void> {
     return;
   }
 
-  // Create all 6 job records as "pending"
+  // Create all 7 job records as "pending"
   const createdJobs = await Promise.all(
     JOB_TYPES.map((jobType) =>
       db.syncJob.create({
@@ -121,6 +123,9 @@ async function executeSyncPipeline(
             break;
           case "recomputeDailyMetrics":
             await runRecomputeDailyMetricsJob(shopDomain, jobId);
+            break;
+          case "recomputeVariantScores":
+            await runRecomputeVariantScoresJob(shopDomain, jobId);
             break;
         }
 
@@ -188,7 +193,7 @@ export async function getSyncStatus(shopDomain: string): Promise<{
   const recentJobs = await db.syncJob.findMany({
     where: { shopDomain },
     orderBy: { createdAt: "desc" },
-    take: 6,
+    take: 7,
   });
 
   if (recentJobs.length === 0) {

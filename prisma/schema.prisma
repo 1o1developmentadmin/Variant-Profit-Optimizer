@@ -61,14 +61,15 @@ model Shop {
 
 // 2. merchant_settings
 model MerchantSettings {
-  id                  Int      @id @default(autoincrement())
-  shopDomain          String   @unique
-  lowMarginThreshold  Float    @default(15)
-  refundRiskThreshold Float    @default(8)
-  stockoutThreshold   Int      @default(10)
-  scoringWeightsJson  String?  // forward-compat JSON blob; not surfaced in Phase 1 UI
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                     Int      @id @default(autoincrement())
+  shopDomain             String   @unique
+  lowMarginThreshold     Float    @default(15)
+  refundRiskThreshold    Float    @default(8)
+  stockoutThreshold      Int      @default(10)
+  scoringWeightsJson     String?  // forward-compat JSON blob; not surfaced in Phase 1 UI
+  confidenceMinThreshold Float    @default(0.40)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   shop Shop @relation(fields: [shopDomain], references: [shopDomain])
 }
@@ -342,17 +343,29 @@ model VariantDailyMetrics {
 
 // 14. variant_scores
 model VariantScore {
-  id            String   @id @default(cuid())
-  shopDomain    String
-  variantGid    String
-  profitScore   Float?   // nullable when cost data is absent (per EPIC spec)
-  marginPct     Float?
-  refundRate    Float?
-  stockoutRisk  Float?
-  velocityScore Float?
-  scoredAt      DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  shopDomain             String
+  variantGid             String
+  profitScore            Float?   // nullable when cost data is absent (per EPIC spec)
+  marginPct              Float?
+  refundRate             Float?
+  stockoutRisk           Float?
+  velocityScore          Float?
+  performanceScore       Float?
+  refundScore            Float?
+  inventoryScore         Float?
+  opportunityScore       Float?
+  riskScore              Float?
+  confidenceScore        Float?
+  recommendedAction      String?
+  isSingleVariantProduct Boolean  @default(false)
+  hasCostData            Boolean  @default(false)
+  costEstimated          Boolean  @default(false)
+  scoreWindow            String   @default("30d")
+  explanationJson        String?
+  scoredAt               DateTime @default(now())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   @@unique([shopDomain, variantGid])
   @@index([shopDomain])
@@ -361,19 +374,24 @@ model VariantScore {
 // 15. recommendations
 // status: active | resolved | dismissed
 model Recommendation {
-  id          String    @id @default(cuid())
-  shopDomain  String
-  variantGid  String
-  type        String?
-  status      String    @default("active")
-  priority    Int       @default(0)
-  titleText   String?
-  bodyText    String?
-  metadata    String?   // JSON blob for additional data
-  resolvedAt  DateTime?
-  dismissedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  shopDomain      String
+  variantGid      String
+  type            String?
+  status          String    @default("active")
+  priority        Int       @default(0)
+  titleText       String?
+  bodyText        String?
+  metadata        String?   // JSON blob for additional data
+  resolvedAt      DateTime?
+  dismissedAt     DateTime?
+  firstSeenAt     DateTime?
+  lastSeenAt      DateTime?
+  confidenceScore Float?
+  productGid      String?
+  variantTitle    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([shopDomain, status])
   @@index([shopDomain, variantGid])
