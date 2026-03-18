@@ -9,14 +9,20 @@ export const action = async ({ request }) => {
 
   if (session) {
     await db.session.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        scope: current.toString(),
-      },
+      where: { id: session.id },
+      data: { scope: current.toString() },
     });
   }
+
+  const scopes = (Array.isArray(current) ? current : [current]).map((s) =>
+    String(s).trim(),
+  );
+  const hasAllOrdersScope = scopes.includes("read_all_orders");
+  await db.shop.upsert({
+    where: { shopDomain: shop },
+    update: { hasAllOrdersScope },
+    create: { shopDomain: shop, hasAllOrdersScope },
+  });
 
   return new Response();
 };

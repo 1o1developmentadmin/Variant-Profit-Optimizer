@@ -19,6 +19,17 @@ const shopify = shopifyApp({
   future: {
     expiringOfflineAccessTokens: true,
   },
+  hooks: {
+    afterAuth: async ({ session }) => {
+      const scopes = session.scope?.split(",").map((s) => s.trim()) ?? [];
+      const hasAllOrdersScope = scopes.includes("read_all_orders");
+      await prisma.shop.upsert({
+        where: { shopDomain: session.shop },
+        update: { hasAllOrdersScope },
+        create: { shopDomain: session.shop, hasAllOrdersScope },
+      });
+    },
+  },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
