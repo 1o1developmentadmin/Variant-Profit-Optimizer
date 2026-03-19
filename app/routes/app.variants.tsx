@@ -14,9 +14,43 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   const quickFilter = url.searchParams.get("quickFilter") ?? "";
   const windowDays = parseInt(url.searchParams.get("window") ?? "30", 10);
 
+  // When a quickFilter is active, pre-filter via variantScore to get matching variantGids
+  let filteredGids: string[] | null = null;
+  if (quickFilter) {
+    type ScoreWhere = {
+      shopDomain: string;
+      recommendedAction?: string;
+      hasCostData?: boolean;
+      marginPct?: { lt: number };
+      refundScore?: { lt: number };
+      inventoryScore?: { lt: number };
+    };
+    let scoreWhere: ScoreWhere | null = null;
+    if (quickFilter === "push" || quickFilter === "deprioritize") {
+      scoreWhere = { shopDomain, recommendedAction: quickFilter };
+    } else if (quickFilter === "low_margin") {
+      scoreWhere = { shopDomain, hasCostData: true, marginPct: { lt: 15 } };
+    } else if (quickFilter === "high_refund_risk") {
+      scoreWhere = { shopDomain, refundScore: { lt: 0.4 } };
+    } else if (quickFilter === "low_stock_high_value") {
+      scoreWhere = { shopDomain, inventoryScore: { lt: 0.4 } };
+    }
+    if (scoreWhere) {
+      const scores = await db.variantScore.findMany({
+        where: scoreWhere,
+        select: { variantGid: true },
+      });
+      filteredGids = scores.map((s: { variantGid: string }) => s.variantGid);
+    }
+  }
+
+  const variantWhere = filteredGids
+    ? { shopDomain, variantGid: { in: filteredGids } }
+    : { shopDomain };
+
   const rawVariants = await db.variant.findMany({
-    where: { shopDomain },
-    take: 100,
+    where: variantWhere,
+    take: filteredGids ? undefined : 100,
     select: {
       id: true,
       variantGid: true,
@@ -53,10 +87,15 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
         // leave defaults
       }
 
-      // Load score for action
+      // Load score for action and risk filters
       const score = await db.variantScore.findUnique({
         where: { shopDomain_variantGid: { shopDomain, variantGid: v.variantGid } },
-        select: { recommendedAction: true, isSingleVariantProduct: true },
+        select: {
+          recommendedAction: true,
+          isSingleVariantProduct: true,
+          refundScore: true,
+          inventoryScore: true,
+        },
       });
 
       return {
@@ -73,6 +112,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
         inventoryQuantity: v.inventoryQuantity,
         recommendedAction: score?.recommendedAction ?? null,
         isSingleVariantProduct: score?.isSingleVariantProduct ?? false,
+        refundScore: score?.refundScore ?? null,
+        inventoryScore: score?.inventoryScore ?? null,
       };
     }),
   );
@@ -94,6 +135,8 @@ interface VariantRow {
   inventoryQuantity: number | null;
   recommendedAction?: string | null;
   isSingleVariantProduct?: boolean;
+  refundScore?: number | null;
+  inventoryScore?: number | null;
 }
 
 export default function Variants() {
@@ -112,14 +155,11 @@ export default function Variants() {
     navigate(`/app/variants/${encodeURIComponent(variant.variantGid)}`);
   }
 
-  // Client-side quick filter
+  // DB already filters for score-based quickFilters; apply remaining client-side filters
   const filteredVariants = (variants as VariantRow[]).filter((v) => {
     if (!quickFilter) return true;
-    if (quickFilter === "push") return v.recommendedAction === "push";
-    if (quickFilter === "low_margin") return v.marginPct != null && v.marginPct < 15;
-    if (quickFilter === "high_refund_risk") return false; // Would need refund score
-    if (quickFilter === "low_stock_high_value")
-      return (v.inventoryQuantity ?? 0) < 10 && v.revenue > 100;
+    // Score-based filters are pre-filtered server-side; pass through
+    if (["push", "deprioritize", "low_margin", "high_refund_risk", "low_stock_high_value"].includes(quickFilter)) return true;
     if (quickFilter === "negative_profit") return v.grossProfit != null && v.grossProfit < 0;
     return true;
   });

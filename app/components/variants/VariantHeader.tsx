@@ -25,7 +25,7 @@ export function VariantHeader({
         {recommendedAction && <StatusBadge action={recommendedAction} />}
         {isSingleVariantProduct && <SingleVariantBadge />}
         {confidenceScore != null && (
-          <s-text>Confidence: {Math.round(confidenceScore)}%</s-text>
+          <s-text>Confidence: {Math.round(confidenceScore * 100)}%</s-text>
         )}
       </s-stack>
     </s-stack>

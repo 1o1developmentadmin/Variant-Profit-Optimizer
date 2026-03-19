@@ -64,19 +64,14 @@ export default function Settings() {
   return (
     <s-page heading="Settings">
       {!data.hasAllOrdersScope && (
-        <s-banner tone="warning">
+        <s-banner tone="info">
           <s-paragraph>
-            Extended order history is not enabled. You can only sync up to 60
-            days of orders.
+            Extended order history (beyond 60 days) requires the{" "}
+            <strong>read_all_orders</strong> scope, which needs approval from
+            Shopify. Apply in your Partners dashboard under App setup →
+            Protected customer data. Once approved, add the scope back to
+            shopify.app.toml and re-deploy.
           </s-paragraph>
-          <s-button
-            variant="secondary"
-            onClick={() =>
-              (window.location.href = `/auth?shop=${data.shopDomain}`)
-            }
-          >
-            Enable extended order history
-          </s-button>
         </s-banner>
       )}
 

@@ -37,8 +37,8 @@ const ACTION_OPTIONS = [
 
 function confidenceTone(score: number | null): string {
   if (score == null) return "neutral";
-  if (score >= 75) return "success";
-  if (score >= 55) return "caution";
+  if (score >= 0.75) return "success";
+  if (score >= 0.55) return "caution";
   return "warning";
 }
 
@@ -115,7 +115,7 @@ export function RecommendationTable({
               <s-table-cell>
                 {rec.confidenceScore != null ? (
                   <s-badge tone={confidenceTone(rec.confidenceScore) as any}>
-                    {Math.round(rec.confidenceScore)}%
+                    {Math.round(rec.confidenceScore * 100)}%
                   </s-badge>
                 ) : (
                   "—"

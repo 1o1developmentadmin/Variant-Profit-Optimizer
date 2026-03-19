@@ -11,7 +11,7 @@ interface VariantScoreBreakdownProps {
 
 function fmtScore(n: number | null): string {
   if (n == null) return "—";
-  return String(Math.round(n));
+  return String(Math.round(n * 100));
 }
 
 export function VariantScoreBreakdown({
@@ -57,7 +57,7 @@ export function VariantScoreBreakdown({
     },
     {
       type: "Confidence",
-      score: confidenceScore != null ? `${Math.round(confidenceScore)}%` : "—",
+      score: confidenceScore != null ? `${Math.round(confidenceScore * 100)}%` : "—",
       notes: "Data completeness and reliability",
     },
   ];

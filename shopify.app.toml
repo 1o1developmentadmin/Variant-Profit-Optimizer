@@ -2,7 +2,7 @@
 
 client_id = "e4d008be6e05c88ab9cffde7d72f54d1"
 name = "variant-profit-optimizer"
-application_url = "https://5321-110-39-135-86.ngrok-free.app"
+application_url = "https://e1fc-110-39-135-86.ngrok-free.app"
 embedded = true
 
 [build]
@@ -28,4 +28,4 @@ api_version = "2026-04"
 scopes = "read_products,read_inventory,read_orders"
 
 [auth]
-redirect_urls = [ "https://5321-110-39-135-86.ngrok-free.app/api/auth" ]
+redirect_urls = [ "https://e1fc-110-39-135-86.ngrok-free.app/api/auth" ]

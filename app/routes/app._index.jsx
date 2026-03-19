@@ -34,14 +34,14 @@ export const loader = async ({ request }) => {
   const refundRiskCount = await db.variantScore.count({
     where: {
       shopDomain,
-      refundScore: { lt: 40 },
+      refundScore: { lt: 0.4 },
     },
   });
 
   const stockRiskCount = await db.variantScore.count({
     where: {
       shopDomain,
-      inventoryScore: { lt: 40 },
+      inventoryScore: { lt: 0.4 },
     },
   });
 

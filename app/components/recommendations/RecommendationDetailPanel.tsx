@@ -75,7 +75,7 @@ export function RecommendationDetailPanel({ rec, onClose }: RecommendationDetail
           <s-text>
             Confidence score:{" "}
             {rec.confidenceScore != null
-              ? `${Math.round(rec.confidenceScore)}%`
+              ? `${Math.round(rec.confidenceScore * 100)}%`
               : "—"}
           </s-text>
         </s-section>
